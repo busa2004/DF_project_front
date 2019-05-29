@@ -29,6 +29,7 @@ import PrivateRoute from '../common/PrivateRoute';
 import { Layout, notification } from 'antd';
 import ManageEvalItem from '../eval/ManageEvalItem';
 import Eval from '../eval/Eval';
+import EvalRank from '../eval/EvalRank';
 const { Sider, Content, Footer } = Layout;
 
 class App extends Component {
@@ -165,6 +166,10 @@ class App extends Component {
                   {/* 평가 */}
                   <PrivateRoute authenticated={this.state.isAuthenticated} path="/Eval" handleLogout={this.handleLogout}
                     component={(props) => <Eval isAuthenticated={this.state.isAuthenticated} currentUser={this.state.currentUser} {...props} />}></PrivateRoute>
+
+                  {/* 평가 순위*/}
+                  <PrivateRoute authenticated={this.state.isAuthenticated} path="/EvalRank" handleLogout={this.handleLogout}
+                    component={(props) => <EvalRank isAuthenticated={this.state.isAuthenticated} currentUser={this.state.currentUser} {...props} />}></PrivateRoute>
 
                   {/* 평가항목관리 */}
                   <PrivateRoute authenticated={this.state.isAuthenticated} path="/ManageEvalItem" handleLogout={this.handleLogout}

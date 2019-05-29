@@ -1,11 +1,10 @@
 import React, { Component } from 'react';
-import { Input, Icon, Button, Card } from 'antd';
+import { Input, Icon, Button, Card, notification, Table } from 'antd';
 import Highlighter from 'react-highlight-words';
 
-import { getTask, getByTask, searchEval } from '../util/APIUtils';
+import { getTask, getByTask, searchEval, getAllEvalVersion, getVersionObj, getScoreByReport } from '../util/APIUtils';
 import EmpList from './EmpList';
 import EvalModal from './EvalModal';
-import EvalTask from './EvalTask';
 
 import LoadingIndicator from '../common/LoadingIndicator';
 import ServerError from '../common/ServerError';
@@ -37,7 +36,8 @@ class Eval extends Component {
       evalDatas: null,
       taskId: 0,
       userTasks: null,
-      isCompleted: false
+      isCompleted: false, 
+      scores: []
     }
   }
   getColumnSearchProps = (dataIndex) => ({
@@ -87,13 +87,10 @@ class Eval extends Component {
       />
     ),
   })
-
-
   handleSearch = (selectedKeys, confirm) => {
     confirm();
     this.setState({ searchText: selectedKeys[0] });
   }
-
   handleReset = (clearFilters) => {
     clearFilters();
     this.setState({ searchText: '' });
@@ -103,6 +100,8 @@ class Eval extends Component {
     this.setState({
       isLoading: true,
     });
+
+    // 팀장권한에서 전체 업무리스트보기
     getTask()
       .then(response => {
         this.setState({
@@ -124,8 +123,8 @@ class Eval extends Component {
       });
   }
 
-  // 업무리스트 평가버튼
   componentWillMount() {
+    // 업무리스트 평가버튼
     this.setState({
       columns: this.state.columns.concat({
         title: '평가',
@@ -141,6 +140,7 @@ class Eval extends Component {
     });
     this.load();
   }
+
   getUser = (childTaskId) => {
     this.setState({
       isLoading: true,
@@ -152,24 +152,16 @@ class Eval extends Component {
           userTasks: response,
           taskId: childTaskId
         });
-        console.log(this.state.userTasks); // 업무리스트에서 평가버튼을 누르면 업무를 가진 사원리스트 뜬다
-        // console.log(response);
-        // empList 가져오고 평가하기 버튼 활성화/비활성화여부
-        var d = new Date();
-        var tmpToday = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
-        var today = new Date(tmpToday);
-        var endDate = new Date(response[0].endDate);
 
-        if (today > endDate) {
-          // 업무가 마감되지 않았으므로 평가를 할 수 없다.
-          this.setState({
-            evalButtonVisible: false, // 평가버튼 비활성화
-          });
-        } else {
-          this.setState({
-            evalButtonVisible: true, // 평가버튼 활성화
-          });
-        }
+        // console.log(this.state.userTasks); // 업무리스트에서 평가버튼을 누르면 업무를 가진 사원리스트 뜬다
+
+        if(this.state.userTasks.length == 0) {
+          // 업무를 가진 사원이 없을때..
+          notification.success({ // 옆에 표시 띄우기
+            message: 'Message',
+            description: "업무를 배정받은 사원이 없습니다."
+          })
+         }
         this.setState({
           isLoading: false
         });
@@ -194,12 +186,136 @@ class Eval extends Component {
       userTask: childUserTask
     });
     this.modalControl(true); // modal control.. true : visible
-    console.log(this.state.userTask);
+    this.setScore();
+  }
+
+  
+  getButtonName = (childButtonName) => {
+    this.setState({
+      buttonName: childButtonName
+    })
+  }
+  
+  // 평가된 업무일 경우 db에서 값을 받아와 셋팅
+  setScore = async () => {
+    this.setState({
+      isLoading: true
+    })
+
+    const taskId = this.state.userTask.id;
+
+    // 보고서에 따른 점수
+    await getScoreByReport(taskId)
+      .then( response => {
+        // console.log(response);
+        const reportValue = {
+          key: "보고서"
+        }
+        if(response == 'NaN') {
+          reportValue.value= "점수가 없습니다."
+        } else {
+          reportValue.value = response.toFixed(0);
+        }        
+        this.setState({
+          report: reportValue
+        });
+        console.log(this.state.report);
+      })
+      .catch(error => {
+        console.log(error);
+    })
+
+    if(this.state.buttonName == '수정') {
+      await searchEval(taskId)
+        .then(response => {
+          let itemListArr = new Array();
+          let scoreArr = new Array();
+          response.map( (item) => {
+            itemListArr.push(item.score.evalItem);
+            scoreArr.push(item.score);
+          });
+          this.setState({
+            itemList: itemListArr,
+            score: scoreArr
+          })
+        })
+        .catch(error => {
+          console.log(error);
+        });
+
+      this.state.itemList.map( (item) => {
+        const newData = {
+          evalItem : item,
+          score: 0
+        }
+        if(item.content == '보고서') {
+          // console.log(this.state.report.value);
+          newData.score= this.state.report.value
+          if(newData.score == '점수가 없습니다.') newData.score= -1;          
+        }
+        this.setState({
+          scores: [...this.state.scores, newData]
+        });
+        // console.log(this.state.scores);
+      })
+    } else if (this.state.buttonName == '평가') {
+      // 최신 버전 가져와서 평가
+      // 최신 버전 이름 가져오기
+      await getAllEvalVersion()
+        .then(response => {
+          this.setState({
+            version: response[response.length-1]
+          });
+          // console.log(this.state.version);
+        })
+        .catch(error => {
+          console.log(error)
+        })
+      // 최신 버전이름으로 json 객체 가져오기
+      await getVersionObj(this.state.version)
+        .then(response => {
+          let arr = new Array();
+          response.map( (item) => {
+            arr.push(item.evalItem);
+          })
+          this.setState({
+            score: [],
+            itemList: arr,
+            version: response
+          })
+        })
+        .catch(error => {
+          console.log(error)
+        })
+
+      this.state.itemList.map( (item) => {
+        // console.log(item);
+        const newData = {
+          evalItem : item,
+          score: 0
+        }
+        if(item.content == '보고서') {
+          newData.score= this.state.report.value
+          if(newData.score == '점수가 없습니다.') newData.score= -1;          
+        }
+        this.setState({
+          scores: [...this.state.scores, newData]
+        })
+      });
+    }
+    this.setState({
+      isLoading: false
+    })
   }
 
   modalControl = (v) => {
     this.setState({
       visible: v
+    })
+  }
+  setNull = () => {
+    this.setState({
+      scores: [],
     })
   }
 
@@ -222,26 +338,31 @@ class Eval extends Component {
     return (
       <div>
         <Card title='평가하기'>
-          <EvalTask
-            data={this.state.evalDatas}
-            colums={this.state.columns} />
-
+          <Table
+            dataSource={this.state.evalDatas}
+            columns={this.state.columns} />
           <br /> <br />
 
           <EmpList
             userTasks={this.state.userTasks} // 업무를 가진 사원리스트
             evalModal={this.evalModal}
             evalButtonVisible={this.state.evalButtonVisible}
-            buttonName={this.state.buttonName} />
+            buttonName={this.state.buttonName}
+            getButtonName={this.getButtonName}
+            />
 
           {/* 평가 component */}
           <EvalModal
-            key={this.state.taskId}
+            report={this.state.report}
+            buttonName={this.state.buttonName}
             visible={this.state.visible}
-            userTask={this.state.userTask} // 평가할 사원의 업무
-            taskId={this.state.taskId}
             modalControl={this.modalControl}
+            userTask={this.state.userTask} // 평가할 사원의 업무
+            score={this.state.score} // 평가된 업무일 경우 점수를 input에 넣어서 세팅
+            scores={this.state.scores} // 점수를 입력할 수 있게..
+            itemList={this.state.itemList}
             refresh={this.refresh}
+            setNull={this.setNull}
           />
         </Card>
       </div>

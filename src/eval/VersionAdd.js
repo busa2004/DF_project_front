@@ -39,7 +39,6 @@ class VersionAdd extends Component {
     }
 
     dataSourceCallback = (childDataSource) => {
-        console.log("Here is Option8VersionAdd");
         console.log(childDataSource);
         this.setState({
             dataSource: childDataSource
@@ -66,12 +65,12 @@ class VersionAdd extends Component {
         setEvalVersion(versionValue)
             .then(response => {
                 notification.success({ // 옆에 표시 띄우기
-                    message: 'version',
+                    message: 'Message',
                     description: "Successfully saved version! Automatically refreshes now!"
                 })
             }).catch(error => {
                 notification.error({
-                    message: 'version',
+                    message: 'Message',
                     description: "Failed to save version.."
                 })
             });
@@ -85,7 +84,7 @@ class VersionAdd extends Component {
         });
 
         // 리렌더링 하기
-        this.props.refresh();
+        // this.props.refresh();
     }
     render() {
         return (
@@ -93,8 +92,14 @@ class VersionAdd extends Component {
                 <div style={{ textAlign: "right" }}>
                     <Button style={{ textAlign: "center", width: '100px', marginTop: 5 }} onClick={this.showModal}> 버전 추가 </Button>
                 </div>
-                <Modal title="버전 추가" visible={this.state.visible} onOk={this.handleOk} onCancel={this.handleCancel}>
-                    <ItemTable show="modal" getDataSource={this.dataSourceCallback} />
+                <Modal 
+                    title="버전 추가" 
+                    visible={this.state.visible} 
+                    onOk={this.handleOk} 
+                    onCancel={this.handleCancel}>
+                    <ItemTable 
+                        show="modal" 
+                        getDataSource={this.dataSourceCallback} />
                     <div style={{ marginTop: "10px" }}>
                         <Form>
                             <FormItem>

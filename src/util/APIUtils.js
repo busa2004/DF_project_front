@@ -314,10 +314,72 @@ export function setEvalScore(evalScore) {
     });
 }
 
+export function updateEvalScore(evalScore) {
+    return request({
+        url: API_BASE_URL + '/eval/updateEval',
+        method: 'POST',
+        body: JSON.stringify(evalScore)
+    });
+}
+
 export function searchEval(taskId) {
     return request ({
         url: API_BASE_URL + '/eval/searchEval?taskId='+taskId,
         method: 'GET'
+    })
+}
+
+export function rank(tasks) {
+    return request({
+        url: API_BASE_URL + '/eval/rank',
+        method: 'POST',
+        body: JSON.stringify(tasks)
+    })
+}
+
+export function isExistUserInEval(taskIds) {
+    return request({
+        url: API_BASE_URL + '/eval/isExistUserInEval',
+        method: 'POST',
+        body: JSON.stringify(taskIds)
+    })
+}
+
+export function getScoreByReport(taskId) {
+    return request({
+        url: API_BASE_URL + '/eval/getScoreByReport?taskId='+taskId,
+        methd: 'GET'
+    })
+}
+
+export function searchYear() {
+    return request({
+        url: API_BASE_URL + '/eval/searchYear',
+        method: 'GET'
+    })
+}
+
+export function scoreRank(param) {
+    return request({
+        url: API_BASE_URL + '/eval/scoreRank',
+        method: 'POST',
+        body: JSON.stringify(param)
+    })
+}
+
+export function monthNYearRank(param) {
+    return request({
+        url: API_BASE_URL + '/eval/monthNYearRank',
+        method: 'POST',
+        body: JSON.stringify(param)
+    })
+}
+
+export function quarterNHalfRank(param) {
+    return request({
+        url: API_BASE_URL + '/eval/quarterNHalfRank',
+        method: 'POST',
+        body: JSON.stringify(param)
     })
 }
 

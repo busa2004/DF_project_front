@@ -1,0 +1,5 @@
+.toggle {
+  /* display: block; */
+  visibility: hidden;
+  /* visibility: visible; */
+}

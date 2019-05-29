@@ -32,9 +32,13 @@ class EmpList extends Component {
     }
   }
 
-  evalModal = (userTask) => { // 평가할 사원 업무 // userTasks랑 다름
-    // console.log(userTask);
+  evalModal = (userTask) => { 
+    // console.log(userTask); // 평가할 사원 업무 // userTasks랑 다름
     this.props.evalModal(userTask);
+  }
+
+  getButtonName = (childButtonName) => {
+    this.props.getButtonName(childButtonName);
   }
   
   componentWillMount() {
@@ -48,6 +52,7 @@ class EmpList extends Component {
                     evalModal={this.evalModal}
                     evalButtonVisible={this.props.evalButtonVisible}
                     record={record}
+                    getButtonName={this.getButtonName}
                   />
         }
       })

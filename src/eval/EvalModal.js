@@ -1,11 +1,10 @@
 import React, { Component } from 'react';
-import VersionSelect from './VersionSelect';
 
 import LoadingIndicator from '../common/LoadingIndicator';
 import ServerError from '../common/ServerError';
 import NotFound from '../common/NotFound';
-import { Table, Modal, notification } from 'antd';
-import { setEvalScore } from '../util/APIUtils';
+import { Table, Modal, notification, Button } from 'antd';
+import { setEvalScore, updateEvalScore } from '../util/APIUtils';
 import ModalInput from './ModalInput';
 
 class EvalModal extends Component {
@@ -13,78 +12,88 @@ class EvalModal extends Component {
       super(props);
       this.state = {
         columns: [{
-          title: '버전 번호',
+          title: '번호',
           dataIndex: 'itemNo',
           key: 'no',
           width: '20%'
         }, {
-          title: '버전 내용',
+          title: '평가항목',
           dataIndex: 'content',
           key: 'content',
-          width: '50%'
+          width: '40%'
         }],
         isLoading: true,
-        itemList: null,
-        version: '',
-        scores: [], // { itemList }, score,
-        userTask: this.props.userTask
+        itemList: this.props.itemList,
+        version: this.props.version,
+        scores: this.props.scores,
+        userTask: this.props.userTask,
       };
   }
-
   // modal
   handleOk = () => {
-    // 사번, 평가항목들, 업무번호
-    console.log("Eval.js >> handleOk()");
-    console.log(this.props.userTask);
-    console.log(this.state.scores); // modal table.. itemList랑 score 다 있음
-    console.log(this.state.version);
-
-    // 점수 입력 확인
-    let notifyUser = false;
+    // validation
+    let scoreRange = false;
     this.state.scores.map( (item) => {
-      if(item.score == -12345) {
-        notifyUser = true
+      if(item.score < -1 || item.score > 100) {
+        scoreRange = true
       }
     });
-    if(notifyUser) { alert('점수를 입력해주세요.'); }
 
-    const evalUserTask = {
-      scores: this.state.scores,
-      version : this.state.version,
-      userTask: this.props.userTask
-    }
-    
-    // 1. 평가항목점수 setting
-    setEvalScore(evalUserTask)
-      .then(response => {
-        console.log(response); // 디비에 저장된 eval row가 넘어옴
-        notification.success({ // 옆에 표시 띄우기
-          message: 'version',
-          description: "Successfully saved score! Automatically refreshes now!"
-        });
-      })
-      .catch(error => {
-        console.log(error);
-        notification.error({
-          message: 'version',
-          description: "Failed to save eval score.."
-        })
+    // validation
+    if(scoreRange == true) {
+      notification.success({ // 옆에 표시 띄우기
+        message: 'Message',
+        description: "점수 범위는 0점 ~ 100점입니다."
       });
-
-    this.props.modalControl(false);
-    this.props.refresh();
+    } else if(scoreRange == false) {
+      const evalUserTask = {
+        // 사번, 평가항목들, 업무번호
+        scores: this.state.scores,// modal table.. itemList랑 score 다 있음
+        userTask: this.props.userTask,
+        userId: this.props.userTask.user.id
+      }
+      console.log(evalUserTask);
+      if(this.props.buttonName == '수정') {
+        updateEvalScore(evalUserTask)
+          .then(response => {
+            console.log(response);
+          })
+          .catch(error => {
+            console.log(error)
+          });
+      } else if(this.props.buttonName == '평가') {
+        console.log(evalUserTask);
+        setEvalScore(evalUserTask)
+          .then(response => {
+            notification.success({ // 옆에 표시 띄우기
+              message: 'Message',
+              description: "평가가 저장되었습니다."
+            });
+          })
+          .catch(error => {
+            console.log(error);
+            notification.error({
+              message: 'Message',
+              description: "평가저장을 실패하였습니다."
+            })
+          }); 
+      }
+      scoreRange = false;
+      // this.props.modalControl(false);
+      // this.props.refresh(); 
+    }    
   }
 
   handleCancel = () => {
+    this.props.setNull();
     this.props.modalControl(false);
   }
-
-
+  
   handleInputChange = ( event, record) => {
     const target = event.target;
     const inputValue = target.value;   
 
-    this.state.scores.map( (item, key) => {
+    this.props.scores.map( (item, key) => {
       if(record.itemNo == item.evalItem.itemNo) {
         this.state.scores[key].score = Number(inputValue);
       }
@@ -93,37 +102,24 @@ class EvalModal extends Component {
   
   componentWillMount() {
     this.setState({
-      // userTask: this.props.userTask,
+      isLoading:true,
       columns: this.state.columns.concat({
           title: '점수',
           dataIndex: 'score',
           key: 'score',  
-          width: '20%',        
-          render: (text, record) => { // record = version에 따른 itemList
-            console.log(this.props.userTask);
-            return <ModalInput 
-                      userTask={this.props.userTask}
+          width: '40%',        
+          render: (text, record) => { // record = version에 따른 itemList            console.log(record);
+            if(record.content == this.props.report.key) {
+              return this.props.report.value;
+            } else {
+              return <ModalInput 
+                      score={this.props.score}
                       record={record}
                       handleInputChange={this.handleInputChange} />
+            }           
           }
       }),
       isLoading: false
-    });
-  }
-
-  itemListCallback = (childItemList) => { 
-    childItemList.map( (item) => {
-      const newData = {
-        evalItem : item,
-        score: -12345
-      }
-      this.setState({
-        scores: [...this.state.scores, newData]
-      })
-    });
-    this.setState({
-        itemList: childItemList,
-        isLoading: false
     });
   }
 
@@ -133,7 +129,6 @@ class EvalModal extends Component {
     });
   }
   
-
   render() {
     if (this.state.isLoading) {
       return <LoadingIndicator />;
@@ -146,23 +141,33 @@ class EvalModal extends Component {
     if (this.state.serverError) {
       return <ServerError />;
     }
-
     return(
       <div>
-      <Modal title="평가하기" 
-        visible={this.props.visible} 
-        onOk={this.handleOk} 
-        onCancel={this.handleCancel}
-      >
-        <VersionSelect 
-          getItemList={this.itemListCallback}
-          setVersion={this.setVersion}
-          disabled={true} />
-        <Table
-          columns={this.state.columns}
-          dataSource={this.state.itemList}
-          pagination={false} />     
-      </Modal>
+        <Modal 
+          title="평가하기" 
+          visible={this.props.visible} 
+          okText={this.props.buttonName}
+          onOk={this.handleOk} 
+          cancelText="닫기"
+          onCancel={this.handleCancel}
+        > 
+          <br/>
+          
+          <Table
+            columns={this.state.columns}
+            dataSource={this.state.itemList}
+            pagination={false} />
+
+          <br/>
+
+          <h5 style={{ textAlign:"right" }}>
+            보고서 점수는 자동으로 계산됩니다.
+          </h5>
+          <br/>
+          <h5 style={{ textAlign:"right" }}>
+            평가 또는 수정 시 입력하지않으면 0점 처리됩니다.
+          </h5>
+        </Modal>
       </div>
     );
   }
