@@ -36,10 +36,11 @@ class VersionAdd extends Component {
             },
             dataSource: []
         });
+        this.props.refresh();
     }
 
     dataSourceCallback = (childDataSource) => {
-        console.log(childDataSource);
+        // console.log(childDataSource);
         this.setState({
             dataSource: childDataSource
         });
@@ -84,7 +85,7 @@ class VersionAdd extends Component {
         });
 
         // 리렌더링 하기
-        // this.props.refresh();
+        this.props.refresh();
     }
     render() {
         return (

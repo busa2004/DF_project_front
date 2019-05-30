@@ -79,8 +79,8 @@ class EvalModal extends Component {
           }); 
       }
       scoreRange = false;
-      // this.props.modalControl(false);
-      // this.props.refresh(); 
+      this.props.modalControl(false);
+      this.props.refresh(); 
     }    
   }
 

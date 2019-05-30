@@ -114,7 +114,7 @@ class ItemTable extends React.Component {
       show: this.props.show, // modal=하단에 버튼 나타남,
       state: this.props.state // 상태가 버전수정인지 평가하기인지..
     };
-    console.log(this.state.state);
+    // console.log(this.state.state);
   }
 
   // render 후 props로부터 받는 값이 변동이 생겼을 때 state 값을 바꿔준다.
@@ -142,7 +142,7 @@ class ItemTable extends React.Component {
   
   componentWillMount() {
     if(this.state.state === 'eval') {
-      console.log("here!");
+      // console.log("here!");
       this.columns.concat({
         title: 'score',
         dataIndex: 'score',
