@@ -37,7 +37,8 @@ class ManageEvalItem extends Component {
                 <h1 className="title"> 평가항목관리 </h1>
                 <VersionSelect 
                     getItemList={this.itemListCallback}
-                    disabled={false} />
+                    disabled={false}
+                    setVersion={this.setVersion} />
                 <ItemTable itemList={this.state.itemList} />
                 <VersionAdd 
                     refresh={ this.refresh }
